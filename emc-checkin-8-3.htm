@@ -3,316 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>EMC - Check-in Chào Mừng 8/3</title>
+    <title>EMC 8/3 - CHECKIN</title>
     <style>
-        :root {
-            --pink-bg: #fff0f3;
-            --pink-frame: #ff85a2; /* Màu khung hồng */
-            --pink-dark: #ff4d6d;
-            --white: #ffffff;
-        }
-
         body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            min-height: 100vh;
-            background-color: var(--pink-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
+            margin: 0; padding: 0;
+            background: #fff0f3;
+            font-family: 'Arial', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow-x: hidden;
         }
 
-        /* --- VÙNG CAMERA & KHUNG --- */
-        #camera-container {
+        /* Chữ EMC lớn trên đầu */
+        .emc-header {
+            font-size: 3rem; font-weight: 900;
+            color: #ff0a54; margin: 20px 0 10px;
+            text-shadow: 2px 2px 10px rgba(255, 10, 84, 0.2);
+            letter-spacing: 5px;
+        }
+
+        .title-83 {
+            color: #ff4d6d; font-size: 1.2rem; font-weight: bold; margin-bottom: 20px;
+        }
+
+        /* Khung Camera */
+        .camera-box {
             position: relative;
-            width: 90vw;
-            height: 90vw; /* Khung vuông */
-            max-width: 400px;
-            max-height: 400px;
-            margin-top: 20px;
-            background-color: #000;
+            width: 350px; height: 350px;
+            border: 12px solid #ff85a2; /* Khung hồng */
             border-radius: 20px;
             overflow: hidden;
-            
-            /* THIẾT KẾ KHUNG HỒNG */
-            border: 10px solid var(--pink-frame); /* Khung hồng */
-            box-shadow: 0 10px 25px rgba(255, 133, 162, 0.4);
-            box-sizing: border-box; /* Quan trọng để border không làm tăng kích thước */
+            background: #fce4ec;
+            box-shadow: 0 10px 30px rgba(255, 133, 162, 0.5);
         }
 
-        /* Video luồng camera */
-        #video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Đảm bảo video lấp đầy khung vuông */
-            display: block;
+        video {
+            width: 100%; height: 100%; object-fit: cover;
         }
+        .mirror { transform: scaleX(-1); }
 
-        /* Hiệu ứng lật gương cho cam trước */
-        #video.mirror {
-            transform: scaleX(-1);
+        /* Lớp phủ chữ trên ảnh */
+        .overlay {
+            position: absolute; width: 100%;
+            text-align: center; color: white;
+            font-weight: bold; pointer-events: none;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
         }
+        .ot-top { top: 15px; font-size: 1.2rem; }
+        .ot-bottom { bottom: 15px; font-size: 1.8rem; }
 
-        /* --- LỚP PHỦ TEXT (CHỈ ĐỂ HIỂN THỊ TRÊN WEB) --- */
-        .overlay-text {
-            position: absolute;
-            width: 100%;
-            color: white;
-            text-align: center;
-            font-weight: bold;
-            pointer-events: none; /* Không cản trở việc bấm vào video */
-            z-index: 5;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .text-top {
-            top: 15px;
-            font-size: 1.4rem;
-        }
-
-        .text-bottom {
-            bottom: 15px;
-            font-size: 1.8rem;
-            color: #fff;
-            letter-spacing: 2px;
-        }
-
-        /* --- VÙNG ĐIỀU KHIỂN --- */
-        #controls-container {
-            margin-top: 25px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 15px;
+        /* Nút điều khiển */
+        .controls {
+            margin-top: 30px; display: flex; gap: 15px;
         }
 
         button {
-            border: none;
-            padding: 12px 24px;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            padding: 12px 25px; border: none; border-radius: 50px;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        /* Nút Chụp & Tải về */
-        .btn-primary {
-            background: linear-gradient(45deg, var(--pink-frame), var(--pink-dark));
-            color: white;
-            box-shadow: 0 4px 15px rgba(255, 77, 109, 0.4);
-        }
+        .btn-capture { background: #ff4d6d; color: white; }
+        .btn-switch { background: white; color: #ff4d6d; border: 2px solid #ff4d6d; }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 77, 109, 0.6);
-        }
+        button:active { transform: scale(0.95); }
 
-        /* Nút Xoay Camera */
-        .btn-secondary {
-            background-color: var(--white);
-            color: var(--pink-dark);
-            border: 2px solid var(--pink-frame);
+        /* Hiệu ứng trang trí hoa hồng bay */
+        .deco-flower {
+            position: absolute; font-size: 20px; opacity: 0.6;
+            animation: float 5s infinite ease-in-out;
         }
-
-        .btn-secondary:hover {
-            background-color: #fff0f3;
-        }
-
-        /* Biểu tượng (Emoji) */
-        .icon {
-            font-size: 1.2rem;
-        }
-
-        /* --- CANVAS ẨN (DÙNG ĐỂ VẼ ẢNH) --- */
-        #canvas {
-            display: none;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 480px) {
-            .text-top { font-size: 1.1rem; }
-            .text-bottom { font-size: 1.5rem; }
-            button { padding: 10px 20px; font-size: 0.9rem; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(20deg); }
         }
     </style>
 </head>
 <body>
 
-    <div id="camera-container">
+    <div class="emc-header">EMC</div>
+    <div class="title-83">CHÀO MỪNG NGÀY QUỐC TẾ PHỤ NỮ</div>
+
+    <div class="camera-box">
         <video id="video" autoplay playsinline class="mirror"></video>
-        
-        <div class="overlay-text text-top">CHÚC MỪNG NGÀY 8/3</div>
-        <div class="overlay-text text-bottom">EMC 8/3</div>
+        <div class="overlay ot-top">CHÚC MỪNG NGÀY 8/3</div>
+        <div class="overlay ot-bottom">EMC 8/3</div>
     </div>
 
-    <div id="controls-container">
-        <div class="btn-group">
-            <button id="switch-btn" class="btn-secondary">
-                <span class="icon">🔄</span> Xoay Cam
-            </button>
-            
-            <button id="capture-btn" class="btn-primary">
-                <span class="icon">📸</span> Chụp & Tải Về
-            </button>
-        </div>
-        <p style="color: #888; font-size: 0.8rem;">(Hãy sử dụng HTTPS để camera hoạt động)</p>
+    <div class="controls">
+        <button class="btn-switch" onclick="switchCam()">🔄 Xoay Cam</button>
+        <button class="btn-capture" onclick="takePhoto()">📸 Chụp & Lưu</button>
     </div>
 
-    <canvas id="canvas" width="800" height="800"></canvas>
+    <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const captureBtn = document.getElementById('capture-btn');
-        const switchBtn = document.getElementById('switch-btn');
-        const ctx = canvas.getContext('2d');
+        let currentFacingMode = 'user';
 
-        // Cấu hình Camera
-        let currentStream = null;
-        let useFrontCamera = true; // Mặc định dùng cam trước
-
-        // --- 1. HÀM KHỞI TẠO CAMERA ---
-        async function startCamera() {
-            // Dừng luồng cũ nếu có
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
-
-            // Cấu hình camera
-            const constraints = {
-                video: {
-                    // Chọn camera: trước (user) hoặc sau (environment)
-                    facingMode: useFrontCamera ? "user" : "environment",
-                    // Yêu cầu khung vuông hoặc tỷ lệ gần vuông
-                    width: { ideal: 1024 },
-                    height: { ideal: 1024 }
-                },
-                audio: false
-            };
-
+        // Khởi động Camera
+        async function initCamera() {
             try {
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = currentStream;
-
-                // Thêm/Xóa class lật gương cho cam trước
-                if (useFrontCamera) {
-                    video.classList.add('mirror');
-                } else {
-                    video.classList.remove('mirror');
+                if (window.stream) {
+                    window.stream.getTracks().forEach(track => track.stop());
                 }
-            } catch (error) {
-                console.error("Không thể truy cập camera:", error);
-                alert("Không thể mở camera. Hãy chắc chắn bạn đang dùng HTTPS và đã cấp quyền.");
+                const constraints = {
+                    video: { facingMode: currentFacingMode },
+                    audio: false
+                };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                window.stream = stream;
+                video.srcObject = stream;
+                
+                if(currentFacingMode === 'user') video.classList.add('mirror');
+                else video.classList.remove('mirror');
+            } catch (e) {
+                alert("Lỗi: Không tìm thấy Camera hoặc chưa cấp quyền!");
             }
         }
 
-        // --- 2. HÀM CHỤP VÀ TẠO ẢNH CÓ CHỮ (WATERMARK) ---
-        function captureAndDownload() {
-            if (!currentStream) return;
+        function switchCam() {
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            initCamera();
+        }
 
-            // Kích thước của ảnh đầu ra (Canvas)
-            const desiredSize = 800; // Ảnh vuông 800x800px
-            canvas.width = desiredSize;
-            canvas.height = desiredSize;
+        function takePhoto() {
+            const ctx = canvas.getContext('2d');
+            canvas.width = 600;
+            canvas.height = 600;
 
-            // Tính toán để cắt video vuông từ luồng video (object-fit: cover)
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
-            const videoAspectRatio = videoWidth / videoHeight;
-
-            let sourceX, sourceY, sourceWidth, sourceHeight;
-
-            if (videoAspectRatio > 1) { // Video ngang
-                sourceHeight = videoHeight;
-                sourceWidth = videoHeight; // Cắt vuông
-                sourceX = (videoWidth - videoHeight) / 2;
-                sourceY = 0;
-            } else { // Video dọc
-                sourceWidth = videoWidth;
-                sourceHeight = videoWidth; // Cắt vuông
-                sourceX = 0;
-                sourceY = (videoHeight - videoWidth) / 2;
-            }
-
-            // --- VẼ ẢNH VIDEO ---
-            ctx.save(); // Lưu trạng thái canvas
-
-            // Nếu là cam trước, cần lật canvas trước khi vẽ
-            if (useFrontCamera) {
-                ctx.translate(desiredSize, 0);
+            // Vẽ video
+            ctx.save();
+            if (currentFacingMode === 'user') {
+                ctx.translate(600, 0);
                 ctx.scale(-1, 1);
             }
+            ctx.drawImage(video, 0, 0, 600, 600);
+            ctx.restore();
 
-            // Vẽ video vào canvas (đã cắt vuông)
-            ctx.drawImage(
-                video,
-                sourceX, sourceY, sourceWidth, sourceHeight, // Vùng cắt nguồn
-                0, 0, desiredSize, desiredSize             // Vùng vẽ đích
-            );
+            // Vẽ khung hồng
+            ctx.lineWidth = 25;
+            ctx.strokeStyle = "#ff85a2";
+            ctx.strokeRect(0, 0, 600, 600);
 
-            ctx.restore(); // Khôi phục trạng thái (hết lật)
-
-            // --- VẼ KHUNG HỒNG ---
-            const borderSize = 25; // Độ dày khung hồng (pixel) trên ảnh 800x800
-            ctx.lineWidth = borderSize;
-            ctx.strokeStyle = "#ff85a2"; // Màu khung
-            ctx.strokeRect(borderSize / 2, borderSize / 2, desiredSize - borderSize, desiredSize - borderSize);
-
-            // --- VẼ CHỮ (WATERMARK) LÊN CHÍNH ẢNH ---
-            
-            // Cấu hình chung cho text
+            // Vẽ chữ
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
-            ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; // Bóng đổ cho chữ
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetX = 4;
-            ctx.shadowOffsetY = 4;
+            ctx.shadowBlur = 10; ctx.shadowColor = "black";
+            
+            ctx.font = "bold 35px Arial";
+            ctx.fillText("CHÚC MỪNG NGÀY 8/3", 300, 60);
+            
+            ctx.font = "bold 55px Arial";
+            ctx.fillText("EMC 8/3", 300, 550);
 
-            // Vẽ chữ TOP: "CHÚC MỪNG NGÀY 8/3"
-            ctx.font = "bold 45px Arial, sans-serif";
-            ctx.fillText("CHÚC MỪNG NGÀY 8/3", desiredSize / 2, 80);
-
-            // Vẽ chữ BOTTOM: "EMC 8/3"
-            ctx.font = "bold 60px 'Arial Black', sans-serif"; // Chữ to hơn
-            ctx.fillText("EMC 8/3", desiredSize / 2, desiredSize - 70);
-
-            // --- TẠI LINK VÀ TẢI VỀ ---
-            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9); // Chất lượng 90%
+            // Tải về
             const link = document.createElement('a');
-            link.href = imageDataUrl;
-            link.download = `EMC_8-3_Checkin_${Date.now()}.jpg`; // Tên file
+            link.download = 'EMC_83_Checkin.png';
+            link.href = canvas.toDataURL();
             link.click();
         }
 
-        // --- 3. LẮNG NGHE SỰ KIỆN ---
+        // Tạo hiệu ứng hoa bay trang trí nền
+        function addDeco() {
+            for(let i=0; i<10; i++){
+                let f = document.createElement('div');
+                f.className = 'deco-flower';
+                f.innerHTML = '🌸';
+                f.style.left = Math.random()*100 + 'vw';
+                f.style.top = Math.random()*100 + 'vh';
+                f.style.animationDelay = Math.random()*5 + 's';
+                document.body.appendChild(f);
+            }
+        }
 
-        // Khi bấm nút xoay camera
-        switchBtn.addEventListener('click', () => {
-            useFrontCamera = !useFrontCamera; // Đổi trạng thái
-            startCamera(); // Khởi động lại cam
-        });
-
-        // Khi bấm nút chụp ảnh
-        captureBtn.addEventListener('click', () => {
-            captureAndDownload();
-        });
-
-        // Khởi động camera khi trang web tải xong
-        window.addEventListener('load', startCamera);
-
+        addDeco();
+        initCamera();
     </script>
 </body>
 </html>
