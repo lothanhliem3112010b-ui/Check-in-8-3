@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>EMC - Check-in Chào Mừng 8/3</title>
+    <style>
+        :root {
+            --pink-bg: #fff0f3;
+            --pink-frame: #ff85a2; /* Màu khung hồng */
+            --pink-dark: #ff4d6d;
+            --white: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            background-color: var(--pink-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* --- VÙNG CAMERA & KHUNG --- */
+        #camera-container {
+            position: relative;
+            width: 90vw;
+            height: 90vw; /* Khung vuông */
+            max-width: 400px;
+            max-height: 400px;
+            margin-top: 20px;
+            background-color: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            
+            /* THIẾT KẾ KHUNG HỒNG */
+            border: 10px solid var(--pink-frame); /* Khung hồng */
+            box-shadow: 0 10px 25px rgba(255, 133, 162, 0.4);
+            box-sizing: border-box; /* Quan trọng để border không làm tăng kích thước */
+        }
+
+        /* Video luồng camera */
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Đảm bảo video lấp đầy khung vuông */
+            display: block;
+        }
+
+        /* Hiệu ứng lật gương cho cam trước */
+        #video.mirror {
+            transform: scaleX(-1);
+        }
+
+        /* --- LỚP PHỦ TEXT (CHỈ ĐỂ HIỂN THỊ TRÊN WEB) --- */
+        .overlay-text {
+            position: absolute;
+            width: 100%;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            pointer-events: none; /* Không cản trở việc bấm vào video */
+            z-index: 5;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .text-top {
+            top: 15px;
+            font-size: 1.4rem;
+        }
+
+        .text-bottom {
+            bottom: 15px;
+            font-size: 1.8rem;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        /* --- VÙNG ĐIỀU KHIỂN --- */
+        #controls-container {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Nút Chụp & Tải về */
+        .btn-primary {
+            background: linear-gradient(45deg, var(--pink-frame), var(--pink-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 77, 109, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 77, 109, 0.6);
+        }
+
+        /* Nút Xoay Camera */
+        .btn-secondary {
+            background-color: var(--white);
+            color: var(--pink-dark);
+            border: 2px solid var(--pink-frame);
+        }
+
+        .btn-secondary:hover {
+            background-color: #fff0f3;
+        }
+
+        /* Biểu tượng (Emoji) */
+        .icon {
+            font-size: 1.2rem;
+        }
+
+        /* --- CANVAS ẨN (DÙNG ĐỂ VẼ ẢNH) --- */
+        #canvas {
+            display: none;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            .text-top { font-size: 1.1rem; }
+            .text-bottom { font-size: 1.5rem; }
+            button { padding: 10px 20px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="camera-container">
+        <video id="video" autoplay playsinline class="mirror"></video>
+        
+        <div class="overlay-text text-top">CHÚC MỪNG NGÀY 8/3</div>
+        <div class="overlay-text text-bottom">EMC 8/3</div>
+    </div>
+
+    <div id="controls-container">
+        <div class="btn-group">
+            <button id="switch-btn" class="btn-secondary">
+                <span class="icon">🔄</span> Xoay Cam
+            </button>
+            
+            <button id="capture-btn" class="btn-primary">
+                <span class="icon">📸</span> Chụp & Tải Về
+            </button>
+        </div>
+        <p style="color: #888; font-size: 0.8rem;">(Hãy sử dụng HTTPS để camera hoạt động)</p>
+    </div>
+
+    <canvas id="canvas" width="800" height="800"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const switchBtn = document.getElementById('switch-btn');
+        const ctx = canvas.getContext('2d');
+
+        // Cấu hình Camera
+        let currentStream = null;
+        let useFrontCamera = true; // Mặc định dùng cam trước
+
+        // --- 1. HÀM KHỞI TẠO CAMERA ---
+        async function startCamera() {
+            // Dừng luồng cũ nếu có
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            // Cấu hình camera
+            const constraints = {
+                video: {
+                    // Chọn camera: trước (user) hoặc sau (environment)
+                    facingMode: useFrontCamera ? "user" : "environment",
+                    // Yêu cầu khung vuông hoặc tỷ lệ gần vuông
+                    width: { ideal: 1024 },
+                    height: { ideal: 1024 }
+                },
+                audio: false
+            };
+
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+
+                // Thêm/Xóa class lật gương cho cam trước
+                if (useFrontCamera) {
+                    video.classList.add('mirror');
+                } else {
+                    video.classList.remove('mirror');
+                }
+            } catch (error) {
+                console.error("Không thể truy cập camera:", error);
+                alert("Không thể mở camera. Hãy chắc chắn bạn đang dùng HTTPS và đã cấp quyền.");
+            }
+        }
+
+        // --- 2. HÀM CHỤP VÀ TẠO ẢNH CÓ CHỮ (WATERMARK) ---
+        function captureAndDownload() {
+            if (!currentStream) return;
+
+            // Kích thước của ảnh đầu ra (Canvas)
+            const desiredSize = 800; // Ảnh vuông 800x800px
+            canvas.width = desiredSize;
+            canvas.height = desiredSize;
+
+            // Tính toán để cắt video vuông từ luồng video (object-fit: cover)
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            const videoAspectRatio = videoWidth / videoHeight;
+
+            let sourceX, sourceY, sourceWidth, sourceHeight;
+
+            if (videoAspectRatio > 1) { // Video ngang
+                sourceHeight = videoHeight;
+                sourceWidth = videoHeight; // Cắt vuông
+                sourceX = (videoWidth - videoHeight) / 2;
+                sourceY = 0;
+            } else { // Video dọc
+                sourceWidth = videoWidth;
+                sourceHeight = videoWidth; // Cắt vuông
+                sourceX = 0;
+                sourceY = (videoHeight - videoWidth) / 2;
+            }
+
+            // --- VẼ ẢNH VIDEO ---
+            ctx.save(); // Lưu trạng thái canvas
+
+            // Nếu là cam trước, cần lật canvas trước khi vẽ
+            if (useFrontCamera) {
+                ctx.translate(desiredSize, 0);
+                ctx.scale(-1, 1);
+            }
+
+            // Vẽ video vào canvas (đã cắt vuông)
+            ctx.drawImage(
+                video,
+                sourceX, sourceY, sourceWidth, sourceHeight, // Vùng cắt nguồn
+                0, 0, desiredSize, desiredSize             // Vùng vẽ đích
+            );
+
+            ctx.restore(); // Khôi phục trạng thái (hết lật)
+
+            // --- VẼ KHUNG HỒNG ---
+            const borderSize = 25; // Độ dày khung hồng (pixel) trên ảnh 800x800
+            ctx.lineWidth = borderSize;
+            ctx.strokeStyle = "#ff85a2"; // Màu khung
+            ctx.strokeRect(borderSize / 2, borderSize / 2, desiredSize - borderSize, desiredSize - borderSize);
+
+            // --- VẼ CHỮ (WATERMARK) LÊN CHÍNH ẢNH ---
+            
+            // Cấu hình chung cho text
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; // Bóng đổ cho chữ
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 4;
+            ctx.shadowOffsetY = 4;
+
+            // Vẽ chữ TOP: "CHÚC MỪNG NGÀY 8/3"
+            ctx.font = "bold 45px Arial, sans-serif";
+            ctx.fillText("CHÚC MỪNG NGÀY 8/3", desiredSize / 2, 80);
+
+            // Vẽ chữ BOTTOM: "EMC 8/3"
+            ctx.font = "bold 60px 'Arial Black', sans-serif"; // Chữ to hơn
+            ctx.fillText("EMC 8/3", desiredSize / 2, desiredSize - 70);
+
+            // --- TẠI LINK VÀ TẢI VỀ ---
+            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9); // Chất lượng 90%
+            const link = document.createElement('a');
+            link.href = imageDataUrl;
+            link.download = `EMC_8-3_Checkin_${Date.now()}.jpg`; // Tên file
+            link.click();
+        }
+
+        // --- 3. LẮNG NGHE SỰ KIỆN ---
+
+        // Khi bấm nút xoay camera
+        switchBtn.addEventListener('click', () => {
+            useFrontCamera = !useFrontCamera; // Đổi trạng thái
+            startCamera(); // Khởi động lại cam
+        });
+
+        // Khi bấm nút chụp ảnh
+        captureBtn.addEventListener('click', () => {
+            captureAndDownload();
+        });
+
+        // Khởi động camera khi trang web tải xong
+        window.addEventListener('load', startCamera);
+
+    </script>
+</body>
+</html>
